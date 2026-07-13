@@ -24,7 +24,7 @@ const DEPT_TO_KEY = {
 };
 
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-function fmtMonth(d) { const dt = new Date(d); return `${MONTH_ABBR[dt.getUTCMonth()]} '${String(dt.getUTCFullYear()).slice(2)}`; }
+function fmtMonth(d) { const dt = new Date(d); if (isNaN(dt)) return null; return `${MONTH_ABBR[dt.getUTCMonth()]} '${String(dt.getUTCFullYear()).slice(2)}`; }
 
 /* ---- DAX query strings (trailing window handled by the model's own dates) ---- */
 const Q = {
@@ -64,9 +64,20 @@ SUMMARIZECOLUMNS(
 ORDER BY 'Date Table'[Month End] ASC`,
 };
 
-/* ---- helpers to read executeQueries rows (keys look like "Table[Col]" / "[Measure]") ---- */
-function col(row, ...names) { for (const n of names) { if (n in row) return row[n]; }
-  const k = Object.keys(row).find(k => names.some(n => k.endsWith(n) || k === n)); return k ? row[k] : undefined; }
+/* ---- helpers to read executeQueries rows ----
+   executeQueries returns column keys as they appear in the result, e.g.
+   "Date Table[Month End]" (table name, no quotes) and "[Rev]" for inline measures.
+   Match on the bracketed segment so quotes/table-name differences don't matter. */
+function col(row, ...names) {
+  for (const n of names) { if (n in row) return row[n]; }         // exact key
+  const keys = Object.keys(row);
+  for (const n of names) {
+    const bracket = n.indexOf('[') >= 0 ? n.slice(n.indexOf('[')) : '[' + n + ']'; // "[Month End]"
+    const hit = keys.find(k => k === n || k.endsWith(bracket));
+    if (hit) return row[hit];
+  }
+  return undefined;
+}
 
 /**
  * Build the full window.MMR shape.
@@ -83,7 +94,7 @@ async function buildShape(runQuery, sample) {
   let months = null;
   await tryField('revenue', async () => {
     const rows = await runQuery(Q.revByMonthDept);
-    const monthSet = [...new Set(rows.map(r => col(r, "'Date Table'[Month End]", 'Month End')))].sort((a, b) => new Date(a) - new Date(b));
+    const monthSet = [...new Set(rows.map(r => col(r, "'Date Table'[Month End]", 'Month End')))].filter(m => m != null && !isNaN(new Date(m))).sort((a, b) => new Date(a) - new Date(b));
     const last12 = monthSet.slice(-12);
     months = last12;
     out.months = last12.map(fmtMonth);
