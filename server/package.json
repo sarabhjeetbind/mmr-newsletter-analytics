@@ -1,0 +1,15 @@
+{
+  "name": "mmr-newsletter-analytics-proxy",
+  "version": "1.0.0",
+  "description": "Backend proxy: runs DAX against the MMR Newsletter Analytics Fabric semantic model and serves it to the OpenBI web app.",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.13.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

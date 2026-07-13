@@ -1,0 +1,7 @@
+# keep secrets and deps out of the repo you push to Render/Railway/GitHub
+server/node_modules/
+server/.env
+node_modules/
+*.log
+.DS_Store
+.pbi/localSettings.json

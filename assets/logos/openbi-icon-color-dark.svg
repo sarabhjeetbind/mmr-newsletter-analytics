@@ -1,0 +1,14 @@
+<svg viewBox="40 32 120 136" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenBI icon · color · dark surface">
+  <title>OpenBI — icon · color · for dark surfaces (inverted cage)</title>
+  <defs>
+    <clipPath id="cube-clip">
+      <polygon points="100,63 132.04,81.5 132.04,118.5 100,137 67.96,118.5 67.96,81.5"></polygon>
+    </clipPath>
+  </defs>
+  <polygon points="100,63 132.04,81.5 100,100 67.96,81.5" fill="#F97316"></polygon>
+  <polygon points="67.96,81.5 100,100 100,137 67.96,118.5" fill="#FB923C"></polygon>
+  <polygon points="132.04,81.5 132.04,118.5 100,137 100,100" fill="#C2410C"></polygon>
+  <path d="M 67.96 81.5 L 100 100 L 132.04 81.5 M 100 100 L 100 137" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="miter" clip-path="url(#cube-clip)"></path>
+  <path d="M 100 40 L 48.04 70 L 48.04 130 L 100 160 L 100 146 L 60.16 123 L 60.16 77 L 100 54 Z" fill="#94A3B8"></path>
+  <path d="M 100 40 L 151.96 70 L 151.96 130 L 100 160 L 100 146 L 139.84 123 L 139.84 77 L 100 54 Z" fill="#334155"></path>
+</svg>

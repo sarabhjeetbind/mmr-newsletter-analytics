@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MMR Newsletter Analytics · OpenBI</title>
+<link rel="icon" href="./assets/logos/favicon.svg">
+<link rel="stylesheet" href="./colors_and_type.css">
+<style>
+  body { overflow: hidden; height: 100vh; }
+  .app { display: grid; grid-template-columns: 240px 1fr; height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar { background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; padding: 14px 12px 8px; min-height: 0; }
+  .sidebar .logo { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 4px 8px 10px; flex: 0 0 auto; }
+  .sidebar .logo img { height: 28px; width: auto; }
+  .sidebar .logo .sub { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ember-500); padding-left: 2px; }
+  .navscroll { overflow-y: auto; flex: 1 1 auto; min-height: 0; margin: 0 -6px; padding: 0 6px; }
+  .navscroll::-webkit-scrollbar { width: 6px; }
+  .navscroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 6px; }
+  .sect { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #64748B; padding: 12px 12px 4px; }
+  .navitem { position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--sidebar-text); font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: background var(--dur-hover) var(--ease-standard), color var(--dur-hover) var(--ease-standard); }
+  .navitem:hover { background: rgba(255,255,255,0.04); color: #F8FAFC; }
+  .navitem.active { background: var(--ember-bg-nav); color: var(--ember-400); font-weight: 600; }
+  .navitem.active::before { content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%); width: 3px; height: 16px; background: var(--ember-500); border-radius: 2px; }
+  .navitem svg { width: 18px; height: 18px; flex: 0 0 18px; }
+  .sidebar .foot { flex: 0 0 auto; padding: 10px 8px 4px; display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #F97316, #FB923C); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+  .foot .meta { font-family: var(--font-sans); font-size: 12px; color: #CBD5E1; }
+  .foot .subm { font-family: var(--font-mono); font-size: 10px; color: #64748B; letter-spacing: 0.04em; }
+
+  /* ---------- Topbar ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-page); position: sticky; top: 0; z-index: 20; }
+  .topbar.scrolled { background: rgba(248, 250, 252, 0.75); backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4); }
+  [data-theme="dark"] .topbar.scrolled { background: rgba(15,23,42,0.75); }
+  .crumbs { display: flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 13px; color: var(--text-muted); }
+  .crumbs b { color: var(--text-primary); font-weight: 600; }
+  .top-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .ctrl { display: inline-flex; align-items: center; gap: 6px; }
+  .ctrl label { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); }
+  select.sel { height: 30px; padding: 0 26px 0 10px; font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--text-primary); background: var(--bg-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center; border: 1px solid var(--border-subtle); border-radius: 8px; outline: none; cursor: pointer; -webkit-appearance: none; appearance: none; }
+  select.sel:hover { border-color: var(--border-medium); }
+  select.sel:focus { border-color: var(--ember-500); box-shadow: 0 0 0 3px var(--ember-bg-row); }
+  .iconbtn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text-secondary); cursor: pointer; transition: background var(--dur-hover) var(--ease-standard); }
+  .iconbtn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .iconbtn svg { width: 18px; height: 18px; }
+
+  /* entity filter popover */
+  .filterwrap { position: relative; }
+  .filterbtn { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--bg-surface); font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--text-primary); cursor: pointer; }
+  .filterbtn:hover { border-color: var(--border-medium); }
+  .filterbtn svg { width: 14px; height: 14px; color: var(--text-muted); }
+  .filterpop { position: absolute; top: 38px; right: 0; z-index: 40; min-width: 200px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-card-hover, 0 12px 32px -12px rgba(15,23,42,0.24)); padding: 8px; display: none; }
+  .filterpop.open { display: block; }
+  .filterpop .opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-family: var(--font-sans); font-size: 13px; color: var(--text-primary); cursor: pointer; }
+  .filterpop .opt:hover { background: var(--bg-subtle); }
+  .filterpop .opt input { accent-color: var(--ember-500); width: 15px; height: 15px; }
+  .filterpop .popfoot { display: flex; justify-content: space-between; padding: 6px 6px 2px; border-top: 1px solid var(--border-subtle); margin-top: 4px; }
+  .linkbtn { background: none; border: 0; font-family: var(--font-sans); font-size: 12px; color: var(--ember-600); cursor: pointer; }
+
+  /* ---------- Canvas ---------- */
+  .canvas { overflow-y: auto; padding: 22px 32px 48px; flex: 1; min-height: 0; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .samplebar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 18px; border: 1px solid var(--border-subtle); border-left: 3px solid var(--ember-500); border-radius: 8px; background: var(--ember-bg-row); }
+  .samplebar svg { width: 16px; height: 16px; color: var(--ember-700); flex: 0 0 16px; }
+  [data-theme="dark"] .samplebar svg { color: var(--ember-400); }
+  .samplebar span { font-family: var(--font-sans); font-size: 12px; color: var(--text-secondary); }
+  .samplebar b { color: var(--text-primary); font-weight: 600; }
+
+  /* per-view toolbar */
+  .viewbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 20px; }
+  .viewbar:empty { display: none; }
+  .seg { display: inline-flex; border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: var(--bg-surface); font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--text-secondary); padding: 6px 12px; cursor: pointer; transition: background var(--dur-hover) var(--ease-standard); }
+  .seg button + button { border-left: 1px solid var(--border-subtle); }
+  .seg button.active { background: var(--ember-500); color: #fff; }
+  .seg button:not(.active):hover { background: var(--bg-subtle); color: var(--text-primary); }
+  .slider { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 12px; color: var(--text-secondary); }
+  .slider input[type=range] { accent-color: var(--ember-500); width: 150px; }
+  .slider b { font-family: var(--font-mono); color: var(--text-primary); font-variant-numeric: tabular-nums; min-width: 30px; }
+  .vlabel { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); }
+
+  /* ---------- KPI grid ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+  .kpi { position: relative; overflow: hidden; }
+  .kpi-spark { position: absolute; right: 14px; top: 14px; width: 88px; height: 32px; opacity: 0.92; }
+  [data-theme="dark"] .kpi { background: var(--bg-surface); }
+  [data-theme="dark"] .kpi.is-highlight { background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04)); }
+
+  /* ---------- Charts ---------- */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 22px; }
+  .charts-row.even { grid-template-columns: 1fr 1fr; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 12px; gap: 12px; }
+  .card-header h4 { font-size: 15px; }
+  .card-header .meta { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .stack-cards { display: flex; flex-direction: column; gap: 16px; margin-bottom: 22px; }
+
+  /* ---------- Table ---------- */
+  .tblwrap { overflow-x: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); }
+  .data-table th { position: sticky; top: 0; z-index: 2; background: var(--bg-surface); text-align: left; font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); padding: 11px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+  .data-table td { font-size: 13px; color: var(--text-secondary); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+  .data-table td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-primary); text-align: right; }
+  .data-table td.client { color: var(--text-primary); font-weight: 500; }
+  .data-table td.sub { color: var(--text-muted); padding-left: 28px; }
+  .data-table tbody tr:hover { background: rgba(0,0,0,0.02); }
+  [data-theme="dark"] .data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+  .data-table tfoot td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-primary); padding: 10px 12px; border-top: 1px solid var(--border-medium); }
+  .data-table tfoot td.lbl { font-family: var(--font-sans); }
+  .data-table tbody tr[data-xf] { cursor: pointer; }
+  .data-table tbody tr.selected { background: var(--ember-bg-row); }
+  .data-table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--ember-500); color: var(--ember-700); font-weight: 600; }
+  [data-theme="dark"] .data-table tbody tr.selected td:first-child { color: var(--ember-400); }
+  .data-table tbody tr.selected td.n { color: var(--ember-700); }
+  [data-theme="dark"] .data-table tbody tr.selected td.n { color: var(--ember-400); }
+  /* cross-filter chip */
+  #xfchip:empty { display: none; }
+  #xfchip { margin: -6px 0 18px; }
+  .xfchip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 6px 0 12px; border-radius: 9999px; background: var(--ember-bg-row); border: 1px solid rgba(249,115,22,0.30); color: var(--ember-700); font-family: var(--font-sans); font-size: 12px; font-weight: 600; }
+  [data-theme="dark"] .xfchip { color: var(--ember-400); }
+  .xfchip .lbl2 { font-family: var(--font-mono); }
+  .xfchip button { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 0; border-radius: 9999px; background: transparent; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; }
+  .xfchip button:hover { background: rgba(249,115,22,0.18); }
+  .caseitem[data-xf] { cursor: pointer; transition: border-color var(--dur-hover) var(--ease-standard); }
+  .caseitem[data-xf]:hover { border-color: var(--border-medium); }
+  .caseitem.selected { border-color: rgba(249,115,22,0.45); background: var(--ember-bg-row); }
+  .grp { cursor: pointer; }
+  .grp .tw { display: inline-block; width: 14px; color: var(--text-muted); }
+
+  /* caselist */
+  .caselist { display: flex; flex-direction: column; gap: 8px; }
+  .caseitem { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--border-subtle); border-radius: 8px; }
+  .caseitem .nm { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .caseitem .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .caseitem .val { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary); text-align: right; }
+  .caseitem .bar { width: 120px; height: 6px; border-radius: 3px; background: var(--bg-subtle); overflow: hidden; }
+  .caseitem .bar > i { display: block; height: 100%; border-radius: 3px; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  @media (max-width: 1180px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .charts-row, .charts-row.even { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- =================== SIDEBAR =================== -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="./assets/logos/openbi-horizontal-color-dark.svg" alt="OpenBI">
+      <div class="sub">MMR · newsletter analytics</div>
+    </div>
+
+    <nav class="navscroll" id="nav">
+      <div class="sect">Overview</div>
+      <div class="navitem active" data-view="home" data-crumb="Executive overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home
+      </div>
+
+      <div class="sect">Revenue</div>
+      <div class="navitem" data-view="revenue" data-crumb="Revenue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> Revenue
+      </div>
+      <div class="navitem" data-view="clientrev" data-crumb="Client Revenue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg> Client Revenue
+      </div>
+      <div class="navitem" data-view="topn" data-crumb="Top N Client">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg> Top N Client
+      </div>
+      <div class="navitem" data-view="actpy" data-crumb="Act vs. PY">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Act vs. PY
+      </div>
+
+      <div class="sect">Resourcing</div>
+      <div class="navitem" data-view="resource" data-crumb="Resource Management">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Resource Mgmt
+      </div>
+      <div class="navitem" data-view="billability" data-crumb="Billability">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg> Billability
+      </div>
+      <div class="navitem" data-view="billablehrs" data-crumb="Billable Hours">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Billable Hours
+      </div>
+      <div class="navitem" data-view="nonbillable" data-crumb="Non-Billable Hours">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Non-Billable Hours
+      </div>
+      <div class="navitem" data-view="weekofsupply" data-crumb="Week of Supply">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Week of Supply
+      </div>
+      <div class="navitem" data-view="hoursremaining" data-crumb="Hours Remaining">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Hours Remaining
+      </div>
+
+      <div class="sect">Backlog</div>
+      <div class="navitem" data-view="backlog" data-crumb="Backlog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Backlog
+      </div>
+      <div class="navitem" data-view="unassigned" data-crumb="Unassigned Hours">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Unassigned Hours
+      </div>
+
+      <div class="sect">Receivables</div>
+      <div class="navitem" data-view="ar" data-crumb="AR Aging Summary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg> AR Aging Summary
+      </div>
+      <div class="navitem" data-view="arbytype" data-crumb="AR by Type">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg> AR by Type
+      </div>
+      <div class="navitem" data-view="ttmar" data-crumb="TTM AR Summary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg> TTM AR Summary
+      </div>
+
+      <div class="sect">Finance</div>
+      <div class="navitem" data-view="wc" data-crumb="Working Capital">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg> Working Capital
+      </div>
+      <div class="navitem" data-view="assets" data-crumb="Assets & Liabilities">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16V9"/><path d="M11 16V5"/><path d="M15 16v-4"/><path d="M19 16V8"/></svg> Assets &amp; Liabilities
+      </div>
+      <div class="navitem" data-view="fxrates" data-crumb="FX Rates">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l-3-3"/><path d="M21 17H8l3 3"/></svg> FX Rates
+      </div>
+      <div class="navitem" data-view="creditnotes" data-crumb="Credit Notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Credit Notes
+      </div>
+    </nav>
+
+    <div class="foot">
+      <div class="avatar">MM</div>
+      <div>
+        <div class="meta">MMR Consulting</div>
+        <div class="subm">Finance · Ops</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle theme" style="margin-left:auto; color:#94A3B8;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- =================== MAIN =================== -->
+  <main class="main">
+    <header class="topbar" id="topbar">
+      <div class="crumbs"><span>MMR Newsletter Analytics</span><span>/</span><b id="crumbLeaf">Executive overview</b></div>
+      <div class="top-actions">
+        <span class="pill success live" id="livePill">● Sample data</span>
+        <div class="filterwrap">
+          <button class="filterbtn" id="entityBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span id="entityBtnLbl">All entities</span>
+          </button>
+          <div class="filterpop" id="entityPop"></div>
+        </div>
+        <div class="ctrl"><label>Currency</label>
+          <select class="sel" id="currencySel">
+            <option value="CAD">CAD · C$</option>
+            <option value="USD">USD · US$</option>
+            <option value="INR">INR · ₹</option>
+            <option value="SGD">SGD · S$</option>
+            <option value="AUD">AUD · A$</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Period</label>
+          <select class="sel" id="periodSel">
+            <option value="MTD">MTD</option>
+            <option value="QTD">QTD</option>
+            <option value="YTD" selected>YTD</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <section class="canvas" id="canvas">
+      <div class="samplebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span><b>Representative sample data</b> — all 20 views reimagined with a fresh look &amp; the report's full functionality. Numbers are illustrative and wire to the live Fabric semantic model when connected.</span>
+      </div>
+
+      <!-- HOME -->
+      <div class="view active" id="view-home">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack">
+          <span class="t-eyebrow" id="home-eyebrow">FY26 · Executive overview</span><h1 class="t-h1">Company snapshot.</h1>
+        </div><div class="page-header-actions"><span class="chip" id="home-refresh">Updated —</span></div></div></div>
+        <div class="kpi-row" id="kpi-home"></div>
+        <div class="charts-row">
+          <div class="card"><div class="card-header"><div><h4>Revenue by entity · trailing 12 months</h4><div class="meta">Xero · net of credit notes</div></div></div><div id="home-revtrend" style="height:300px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Revenue mix · by entity</h4><div class="meta" id="home-mix-meta">Latest month</div></div></div><div id="home-revmix" style="height:300px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Entities at a glance</h4><div class="meta">Latest month revenue · share of global</div></div></div><div class="caselist" id="home-entities"></div></div>
+      </div>
+
+      <!-- REVENUE -->
+      <div class="view" id="view-revenue">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="rev-eyebrow">Revenue</span><h1 class="t-h1">Revenue.</h1></div></div></div>
+        <div class="viewbar" id="vb-revenue"></div>
+        <div class="kpi-row" id="kpi-rev"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4 id="rev-trend-title">Revenue trend by location &amp; month</h4><div class="meta">Net of credit notes</div></div></div><div id="rev-trend" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Actual vs prior year</h4><div class="meta">Global · last 6 months</div></div></div><div id="rev-actpy" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4 id="rev-table-title">Revenue by entity · recent months</h4><div class="meta">Last 6 months</div></div></div><div class="tblwrap"><table class="data-table" id="rev-table"></table></div></div>
+      </div>
+
+      <!-- CLIENT REVENUE -->
+      <div class="view" id="view-clientrev">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="clientrev-eyebrow">Client revenue</span><h1 class="t-h1">Revenue by client.</h1></div></div></div>
+        <div class="viewbar" id="vb-clientrev"></div>
+        <div class="kpi-row" id="kpi-clientrev"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Revenue by client</h4><div class="meta">Latest month</div></div></div><div id="clientrev-chart" style="height:340px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Revenue mix · by entity</h4><div class="meta">Latest month</div></div></div><div id="clientrev-mix" style="height:340px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Revenue by department &amp; client</h4><div class="meta">Only 4010 sales · excludes manual journals</div></div></div><div class="tblwrap"><table class="data-table" id="clientrev-table"></table></div></div>
+      </div>
+
+      <!-- TOP N CLIENT -->
+      <div class="view" id="view-topn">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="topn-eyebrow">Top clients</span><h1 class="t-h1" id="topn-title">Top clients.</h1></div></div></div>
+        <div class="viewbar" id="vb-topn"></div>
+        <div class="kpi-row" id="kpi-topn"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4 id="topn-chart-title">Revenue by top clients</h4><div class="meta">Ranked · latest month</div></div></div><div id="topn-chart" style="height:360px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Client ranking</h4><div class="meta">Revenue &amp; share</div></div></div><div class="tblwrap"><table class="data-table" id="topn-table"></table></div></div>
+      </div>
+
+      <!-- ACT VS PY -->
+      <div class="view" id="view-actpy">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="actpy-eyebrow">Actual vs prior year</span><h1 class="t-h1">Act vs. PY.</h1></div></div></div>
+        <div class="viewbar" id="vb-actpy"></div>
+        <div class="kpi-row" id="kpi-actpy"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Revenue trend · Actual vs PY</h4><div class="meta" id="actpy-meta">Global</div></div></div><div id="actpy-trend" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>YoY variance %</h4><div class="meta">By month</div></div></div><div id="actpy-var" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Actual vs PY by entity</h4><div class="meta" id="actpy-tbl-meta">Selected period</div></div></div><div class="tblwrap"><table class="data-table" id="actpy-table"></table></div></div>
+      </div>
+
+      <!-- RESOURCE MANAGEMENT -->
+      <div class="view" id="view-resource">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Resource management</span><h1 class="t-h1">Billability by week.</h1></div></div></div>
+        <div class="viewbar" id="vb-resource"></div>
+        <div class="kpi-row" id="kpi-resource"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Company billability · weekly</h4><div class="meta">All staff vs consultants</div></div></div><div id="res-trend" style="height:300px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Billability by entity</h4><div class="meta">Latest week</div></div></div><div id="res-entity" style="height:300px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Staff billability &amp; week of supply</h4><div class="meta" id="res-tbl-meta">Consultants &amp; operational staff</div></div></div><div class="tblwrap"><table class="data-table" id="res-table"></table></div></div>
+      </div>
+
+      <!-- BILLABILITY -->
+      <div class="view" id="view-billability">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Resource utilization</span><h1 class="t-h1">Billability.</h1></div></div></div>
+        <div class="viewbar" id="vb-billability"></div>
+        <div class="kpi-row" id="kpi-bill"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Billable vs non-billable hours</h4><div class="meta">Trailing 12 months</div></div></div><div id="bill-trend" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Non-billable hours by category</h4><div class="meta">Latest month · Grouping Key</div></div></div><div id="bill-cat" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Billability % by entity</h4><div class="meta">Latest month</div></div></div><div id="bill-entity" style="height:260px;"></div></div>
+      </div>
+
+      <!-- BILLABLE HOURS -->
+      <div class="view" id="view-billablehrs">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Billable hours</span><h1 class="t-h1">Billable hours.</h1></div></div></div>
+        <div class="viewbar" id="vb-billablehrs"></div>
+        <div class="kpi-row" id="kpi-billablehrs"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Billable hours &amp; FTE trend</h4><div class="meta">Trailing 12 months</div></div></div><div id="billhrs-trend" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Utilization summary</h4><div class="meta">By month</div></div></div><div class="tblwrap"><table class="data-table" id="billhrs-table"></table></div></div>
+      </div>
+
+      <!-- NON BILLABLE HOURS -->
+      <div class="view" id="view-nonbillable">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Non-billable</span><h1 class="t-h1">Non-billable hours.</h1></div></div></div>
+        <div class="viewbar" id="vb-nonbillable"></div>
+        <div class="kpi-row" id="kpi-nonbill"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Non-billable trend by category</h4><div class="meta">Last 6 months</div></div></div><div id="nonbill-trend" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Composition · latest month</h4><div class="meta">Grouping Key</div></div></div><div id="nonbill-cat" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Non-billable hours by category &amp; month</h4><div class="meta">Last 6 months</div></div></div><div class="tblwrap"><table class="data-table" id="nonbill-table"></table></div></div>
+      </div>
+
+      <!-- WEEK OF SUPPLY -->
+      <div class="view" id="view-weekofsupply">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Capacity runway</span><h1 class="t-h1">Week of supply.</h1></div></div></div>
+        <div class="viewbar" id="vb-weekofsupply"></div>
+        <div class="kpi-row" id="kpi-wos"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Weeks of supply by consultant</h4><div class="meta">Hours remaining ÷ 40</div></div></div><div id="wos-chart" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Budgeted vs consumed vs remaining</h4><div class="meta">By consultant</div></div></div><div class="tblwrap"><table class="data-table" id="wos-table"></table></div></div>
+      </div>
+
+      <!-- HOURS REMAINING -->
+      <div class="view" id="view-hoursremaining">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Delivery</span><h1 class="t-h1">Hours remaining.</h1></div></div></div>
+        <div class="viewbar" id="vb-hoursremaining"></div>
+        <div class="kpi-row" id="kpi-hours"></div>
+        <div class="card"><div class="card-header"><div><h4>Remaining hours · employee → client → project → task</h4><div class="meta">Expand a row to drill</div></div></div><div class="tblwrap"><table class="data-table" id="hours-table"></table></div></div>
+      </div>
+
+      <!-- BACKLOG -->
+      <div class="view" id="view-backlog">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Backlog</span><h1 class="t-h1">Backlog months.</h1></div></div></div>
+        <div class="viewbar" id="vb-backlog"></div>
+        <div class="kpi-row" id="kpi-backlog"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Backlog months by consultant</h4><div class="meta">Latest month</div></div></div><div id="backlog-chart" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Backlog months · consultant × month</h4><div class="meta">Last 6 months</div></div></div><div class="tblwrap"><table class="data-table" id="backlog-table"></table></div></div>
+      </div>
+
+      <!-- UNASSIGNED HOURS -->
+      <div class="view" id="view-unassigned">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Backlog scope</span><h1 class="t-h1">Unassigned hours.</h1></div></div></div>
+        <div class="viewbar" id="vb-unassigned"></div>
+        <div class="kpi-row" id="kpi-unassigned"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Unassigned value by project</h4><div class="meta">PO − expenses − assigned</div></div></div><div id="unassigned-chart" style="height:320px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Project detail</h4><div class="meta">PO value · expenses · assigned · unassigned</div></div></div><div class="tblwrap"><table class="data-table" id="unassigned-table"></table></div></div>
+      </div>
+
+      <!-- AR AGING SUMMARY -->
+      <div class="view" id="view-ar">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="ar-eyebrow">Accounts receivable</span><h1 class="t-h1">AR aging.</h1></div></div></div>
+        <div class="viewbar" id="vb-ar"></div>
+        <div class="kpi-row" id="kpi-ar"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Aging profile</h4><div class="meta">By bucket</div></div></div><div id="ar-buckets" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Overdue vs total · trailing 12 months</h4><div class="meta">AR trend</div></div></div><div id="ar-ttm" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>AR by client</h4><div class="meta">Amount by aging bucket</div></div></div><div class="tblwrap"><table class="data-table" id="ar-table"></table></div></div>
+      </div>
+
+      <!-- AR BY TYPE -->
+      <div class="view" id="view-arbytype">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="arbytype-eyebrow">Accounts receivable</span><h1 class="t-h1">AR by type.</h1></div></div></div>
+        <div class="viewbar" id="vb-arbytype"></div>
+        <div class="kpi-row" id="kpi-arbytype"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>AR by type</h4><div class="meta">Share of total</div></div></div><div id="arbytype-pie" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>AR by client</h4><div class="meta">Share of total</div></div></div><div id="arbyclient-pie" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>AR by type · detail</h4><div class="meta">Amount &amp; % of total</div></div></div><div class="tblwrap"><table class="data-table" id="arbytype-table"></table></div></div>
+      </div>
+
+      <!-- TTM AR SUMMARY -->
+      <div class="view" id="view-ttmar">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="ttmar-eyebrow">Trailing 12 months</span><h1 class="t-h1">TTM AR summary.</h1></div></div></div>
+        <div class="viewbar" id="vb-ttmar"></div>
+        <div class="kpi-row" id="kpi-ttmar"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>AR &amp; revenue · trailing 12 months</h4><div class="meta">Overdue · not overdue · revenue</div></div></div><div id="ttmar-combo" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>AR summary · by period</h4><div class="meta">Overdue · total · revenue · inventory</div></div></div><div class="tblwrap"><table class="data-table" id="ttmar-table"></table></div></div>
+      </div>
+
+      <!-- WORKING CAPITAL -->
+      <div class="view" id="view-wc">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="wc-eyebrow">Balance sheet</span><h1 class="t-h1">Working capital.</h1></div></div></div>
+        <div class="viewbar" id="vb-wc"></div>
+        <div class="kpi-row" id="kpi-wc"></div>
+        <div class="charts-row even">
+          <div class="card"><div class="card-header"><div><h4>Cash, equity &amp; working capital · trend</h4><div class="meta">Trailing 12 months</div></div></div><div id="wc-trend" style="height:320px;"></div></div>
+          <div class="card"><div class="card-header"><div><h4>Current assets vs liabilities</h4><div class="meta">Last 6 months</div></div></div><div id="wc-components" style="height:320px;"></div></div>
+        </div>
+        <div class="card"><div class="card-header"><div><h4>Working capital by entity</h4><div class="meta">With cash · latest month</div></div></div><div id="wc-entity" style="height:260px;"></div></div>
+      </div>
+
+      <!-- ASSETS & LIABILITIES -->
+      <div class="view" id="view-assets">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow" id="assets-eyebrow">Balance sheet</span><h1 class="t-h1">Assets &amp; liabilities.</h1></div></div></div>
+        <div class="viewbar" id="vb-assets"></div>
+        <div class="kpi-row" id="kpi-assets"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Cash, current assets &amp; liabilities · trend</h4><div class="meta">Trailing 12 months</div></div></div><div id="assets-trend" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Balance-sheet detail</h4><div class="meta">Last 6 months</div></div></div><div class="tblwrap"><table class="data-table" id="assets-table"></table></div></div>
+      </div>
+
+      <!-- FX RATES -->
+      <div class="view" id="view-fxrates">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Foreign exchange</span><h1 class="t-h1">FX rates.</h1></div></div></div>
+        <div class="viewbar" id="vb-fxrates"></div>
+        <div class="kpi-row" id="kpi-fx"></div>
+        <div class="card" style="margin-bottom:22px;"><div class="card-header"><div><h4>Bank of Canada rates · trailing 12 months</h4><div class="meta">Foreign currency per 1 CAD</div></div></div><div id="fx-trend" style="height:340px;"></div></div>
+        <div class="card"><div class="card-header"><div><h4>Average monthly rate</h4><div class="meta">By currency</div></div></div><div class="tblwrap"><table class="data-table" id="fx-table"></table></div></div>
+      </div>
+
+      <!-- CREDIT NOTES -->
+      <div class="view" id="view-creditnotes">
+        <div class="page-header"><div class="page-header-row"><div class="page-header-titlestack"><span class="t-eyebrow">Revenue adjustments</span><h1 class="t-h1">Credit notes.</h1></div></div></div>
+        <div class="viewbar" id="vb-creditnotes"></div>
+        <div class="kpi-row" id="kpi-cn"></div>
+        <div class="card"><div class="card-header"><div><h4>Credit notes</h4><div class="meta">ACCRECCREDIT · PAID</div></div></div><div class="tblwrap"><table class="data-table" id="cn-table"></table></div></div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<script src="./config.js"></script>
+<script src="./data.js"></script>
+<script src="./openbi-charts.js"></script>
+<script src="./data-live.js"></script>
+<script>
+  /* Boot: if configured for live data, fetch it (proxy or snapshot) and replace
+     window.MMR before app.js runs; otherwise fall back to the sample data. */
+  (async function () {
+    const cfg = window.MMR_CONFIG || {};
+    const pill = document.getElementById('livePill');
+    if (cfg.live) {
+      try { window.MMR = await window.loadLive(cfg); if (pill) pill.textContent = '● Live · Fabric'; }
+      catch (e) { console.error('[MMR] live data failed; using sample data.', e); if (pill) pill.textContent = '● Live unavailable — sample'; }
+    }
+    const s = document.createElement('script'); s.src = './app.js'; document.body.appendChild(s);
+  })();
+</script>
+</body>
+</html>

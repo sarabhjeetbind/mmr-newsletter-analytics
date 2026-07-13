@@ -1,0 +1,8 @@
+<svg viewBox="40 32 120 136" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OpenBI icon · monochrome white">
+  <title>OpenBI — icon · monochrome white (3-tone for 3D depth on dark surfaces)</title>
+  <polygon points="100,63 132.04,81.5 100,100 67.96,81.5" fill="#FFFFFF"></polygon>
+  <polygon points="67.96,81.5 100,100 100,137 67.96,118.5" fill="#CCCCCC"></polygon>
+  <polygon points="132.04,81.5 132.04,118.5 100,137 100,100" fill="#999999"></polygon>
+  <path d="M 100 40 L 48.04 70 L 48.04 130 L 100 160 L 100 146 L 60.16 123 L 60.16 77 L 100 54 Z" fill="#AAAAAA"></path>
+  <path d="M 100 40 L 151.96 70 L 151.96 130 L 100 160 L 100 146 L 139.84 123 L 139.84 77 L 100 54 Z" fill="#FFFFFF"></path>
+</svg>

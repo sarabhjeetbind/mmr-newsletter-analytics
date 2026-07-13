@@ -1,0 +1,28 @@
+# Render Blueprint — deploys the app + live proxy as one Docker web service.
+# https://render.com  →  New +  →  Blueprint  →  connect the repo containing this file.
+# Secrets (sync:false) are entered in the Render dashboard, never committed.
+services:
+  - type: web
+    name: mmr-newsletter-analytics
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: MOCK
+        value: "false"                 # "true" to serve sample data with no service principal
+      # ── non-secret IDs (read from your Fabric workspace) ──
+      - key: WORKSPACE_ID
+        value: ebd1a183-f98d-4b01-a4f2-18d46a3848c8
+      - key: DATASET_ID
+        value: 1b3dad89-e898-4900-894c-2996af215c4e
+      # ── service principal — set these in the Render dashboard (kept out of git) ──
+      - key: TENANT_ID
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: CLIENT_SECRET
+        sync: false
+    # Render injects PORT automatically; server/index.js reads process.env.PORT.

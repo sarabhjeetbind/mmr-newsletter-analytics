@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/fonts/*", "/server/*", "*.js", "*.css", "*.json", "*.svg", "*.ttf"]
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "frame-ancestors 'self' https://app.powerbi.com https://*.powerbi.com https://app.fabric.microsoft.com https://*.fabric.microsoft.com"
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".ttf": "font/ttf"
+  }
+}
