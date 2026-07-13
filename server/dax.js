@@ -95,7 +95,13 @@ async function buildShape(runQuery, sample) {
   await tryField('revenue', async () => {
     const rows = await runQuery(Q.revByMonthDept);
     const monthSet = [...new Set(rows.map(r => col(r, "'Date Table'[Month End]", 'Month End')))].filter(m => m != null && !isNaN(new Date(m))).sort((a, b) => new Date(a) - new Date(b));
-    const last12 = monthSet.slice(-12);
+    // anchor the 12-month window on the LATEST month that actually has revenue,
+    // so trailing empty months (model refreshed only through a past date) don't show
+    const totalByMonth = {};
+    rows.forEach(r => { const m = col(r, "'Date Table'[Month End]", 'Month End'); totalByMonth[m] = (totalByMonth[m] || 0) + (Number(col(r, '[Rev]', 'Rev')) || 0); });
+    const withData = monthSet.filter(m => (totalByMonth[m] || 0) !== 0);
+    const anchor = withData.length ? withData[withData.length - 1] : monthSet[monthSet.length - 1];
+    const last12 = monthSet.filter(m => new Date(m) <= new Date(anchor)).slice(-12);
     months = last12;
     out.months = last12.map(fmtMonth);
     out.entities.forEach(e => { e.rev = last12.map(() => 0); });
